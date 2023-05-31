@@ -1,0 +1,8 @@
+spring.datasource.url=
+spring.datasource.username=
+spring.datasource.password=
+spring.jpa.database-platform=
+spring.jpa.show-sql=
+server.port=
+eureka.client.serviceUrl.defaultZone=
+spring.application.name=
