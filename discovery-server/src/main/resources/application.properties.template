@@ -1,0 +1,4 @@
+eureka.instance.hostname=
+eureka.client.register-with-eureka=
+eureka.client.fetch-registry=
+server.port=
