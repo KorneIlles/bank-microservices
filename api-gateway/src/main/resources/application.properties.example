@@ -1,0 +1,16 @@
+eureka.client.serviceUrl.defaultZone=
+spring.application.name=
+server.port=
+logging.level.root=
+logging.level.org.springframework.cloud.gateway.route.RouteDefinitionLocator=
+logging.level.org.springframework.cloud.gateway=
+
+## Client service route
+spring.cloud.gateway.routes[0].id=
+spring.cloud.gateway.routes[0].uri.=
+spring.cloud.gateway.routes[0].predicates[0]=
+
+## Account service route
+## Card service route
+## discovery server route
+## discovery server static resources route
