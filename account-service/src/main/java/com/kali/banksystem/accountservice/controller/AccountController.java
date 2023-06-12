@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/account")
@@ -24,8 +25,8 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void registerClient(@RequestBody AccountRequest accountRequest){
-        accountService.createAccount(accountRequest);
+    public CompletableFuture<AccountResponse> registerClient(@RequestBody AccountRequest accountRequest){
+         return accountService.createAccount(accountRequest);
     }
 
     @GetMapping("/{clientId}")
