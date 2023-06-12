@@ -7,9 +7,14 @@ import com.kali.banksystem.accountservice.dto.card.CardRequest;
 import com.kali.banksystem.accountservice.dto.card.CardResponse;
 import com.kali.banksystem.accountservice.model.Account;
 import com.kali.banksystem.accountservice.repository.AccountRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -18,14 +23,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
 public class AccountService {
 
     private final AccountRepository accountRepository;
-//    private  final WebClient webClient;
-    private  final WebClient.Builder webClientBuilder;
+    //    private  final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
 
     @Autowired
     public AccountService(AccountRepository accountRepository, WebClient.Builder webClientBuilder) {
@@ -33,8 +39,11 @@ public class AccountService {
         this.webClientBuilder = webClientBuilder;
     }
 
-    public void createAccount(AccountRequest accountRequest) {
-
+    @CircuitBreaker(name = "card",fallbackMethod = "fallBackMethod")
+    @TimeLimiter(name = "card")
+    @Retry(name = "card")
+    @Transactional
+    public CompletableFuture<AccountResponse> createAccount(AccountRequest accountRequest) {
         Account account = Account.builder()
                 .accountNumber(generateRandomAccountNumber())
                 .balance(BigDecimal.ZERO)
@@ -48,15 +57,22 @@ public class AccountService {
                 .cardIds(new ArrayList<>())
                 .build();
 
+        try {
+            // Save the client entity
+            accountRepository.save(account);
+            log.info("Account {} is registered", account.getId());
 
-        accountRepository.save(account);
-        CardRequest cardRequest = getCardRequest(accountRequest.getClientName(), account.getId(), "standard");
-        Mono<CardResponse> createdCard = createCard(cardRequest);
-        createdCard.subscribe(card -> {
-            log.info("created card {}", card.getId());
-        });
+            CardRequest cardRequest = getCardRequest(accountRequest.getClientName(), account.getId(), "standard");
+            Mono<CardResponse> createdCard = createCard(cardRequest);
 
-
+            CardResponse card = createdCard.block(); // Wait for the Mono to complete and get the result
+            log.info("base card {} is created for account id {} ", card.getId(), account.getId());
+            return  CompletableFuture.supplyAsync(() -> mapToAccountResponse(account));
+        } catch (Exception e) {
+            // Handle the exception
+            log.error("Failed to create card for account {}", account.getId(), e);
+            throw e;
+        }
     }
 
     public List<AccountResponse> getAllAccountByClientId(Long clientId) {
@@ -128,6 +144,10 @@ public class AccountService {
                 .accountId(accountId)
                 .cardHolderName(clientName)
                 .build();
+    }
+
+    private CompletableFuture<String>  fallBackMethod(AccountRequest accountRequest, RuntimeException runtimeException){
+        return CompletableFuture.supplyAsync(() ->"Oops! Something went wrong, please try later!");
     }
 
 

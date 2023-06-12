@@ -5,9 +5,11 @@ import com.kali.banksystem.cardservice.dto.CardRequest;
 import com.kali.banksystem.cardservice.dto.CardResponse;
 import com.kali.banksystem.cardservice.model.Card;
 import com.kali.banksystem.cardservice.repository.CardRepository;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Random;
@@ -23,7 +25,9 @@ public class CardService {
         this.cardRepository = cardRepository;
     }
 
-    public void createCard(CardRequest cardRequest) {
+
+    @Transactional
+    public CardResponse createCard(CardRequest cardRequest) throws Exception {
         Card card = Card.builder()
                 .cardType(cardRequest.getCardType())
                 .pan(generatePAN())
@@ -33,8 +37,14 @@ public class CardService {
                 .cvv(createCCV())
                 .build();
 
-        cardRepository.save(card);
-        log.info("card {} is registered", card.getId());
+        try {
+            cardRepository.save(card);
+            log.info("card {} is registered", card.getId());
+            return mapToCardResponse(card);
+        }catch (Exception e){
+            log.error("Failed to create card to this account {}", cardRequest.getAccountId(), e);
+            throw  new Exception("Failed to create card.");
+        }
     }
 
     public List<CardResponse> getCardsByAccountId(Long accountId) {

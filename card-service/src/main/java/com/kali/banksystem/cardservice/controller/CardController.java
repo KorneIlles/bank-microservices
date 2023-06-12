@@ -6,6 +6,7 @@ import com.kali.banksystem.cardservice.dto.CardResponse;
 import com.kali.banksystem.cardservice.service.CardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,8 +25,8 @@ public class CardController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void registerClient(@RequestBody CardRequest cardRequest){
-        cardService.createCard(cardRequest);
+    public CardResponse createCard(@RequestBody CardRequest cardRequest) throws Exception {
+        return cardService.createCard(cardRequest);
     }
 
     @GetMapping("/{accountId}")
