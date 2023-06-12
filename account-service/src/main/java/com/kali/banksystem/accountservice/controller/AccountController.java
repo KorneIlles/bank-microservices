@@ -25,7 +25,7 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CompletableFuture<AccountResponse> registerClient(@RequestBody AccountRequest accountRequest){
+    public CompletableFuture<AccountResponse> createAccount(@RequestBody AccountRequest accountRequest){
          return accountService.createAccount(accountRequest);
     }
 

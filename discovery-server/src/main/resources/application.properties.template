@@ -1,4 +1,9 @@
+##eureka
 eureka.instance.hostname=
 eureka.client.register-with-eureka=
 eureka.client.fetch-registry=
+eureka.username=
+eureka.password=
+
+##server
 server.port=
