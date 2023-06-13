@@ -39,11 +39,10 @@ public class AccountService {
         this.webClientBuilder = webClientBuilder;
     }
 
-    @CircuitBreaker(name = "card",fallbackMethod = "fallBackMethod")
+    @CircuitBreaker(name = "card", fallbackMethod = "fallBackMethod")
     @TimeLimiter(name = "card")
     @Retry(name = "card")
-    @Transactional
-    public CompletableFuture<AccountResponse> createAccount(AccountRequest accountRequest) {
+    public CompletableFuture<String> createAccount(AccountRequest accountRequest) {
         Account account = Account.builder()
                 .accountNumber(generateRandomAccountNumber())
                 .balance(BigDecimal.ZERO)
@@ -57,6 +56,8 @@ public class AccountService {
                 .cardIds(new ArrayList<>())
                 .build();
 
+        log.info("{}",account);
+
         try {
             // Save the client entity
             accountRepository.save(account);
@@ -67,10 +68,12 @@ public class AccountService {
 
             CardResponse card = createdCard.block(); // Wait for the Mono to complete and get the result
             log.info("base card {} is created for account id {} ", card.getId(), account.getId());
-            return  CompletableFuture.supplyAsync(() -> mapToAccountResponse(account));
+
+            return CompletableFuture.supplyAsync(() -> String.format("base account %s is created for client id %s", account.getId(), account.getClientId()));
         } catch (Exception e) {
             // Handle the exception
             log.error("Failed to create card for account {}", account.getId(), e);
+            accountRepository.delete(account);
             throw e;
         }
     }
@@ -130,7 +133,7 @@ public class AccountService {
     }
 
     private Mono<CardResponse> createCard(CardRequest cardRequest) {
-
+        log.info("CREATE CARD METGHOD --------------------------------------------------");
         return webClientBuilder.build().post()
                 .uri("http://card-service/api/card")
                 .bodyValue(cardRequest)
@@ -146,8 +149,8 @@ public class AccountService {
                 .build();
     }
 
-    private CompletableFuture<String>  fallBackMethod(AccountRequest accountRequest, RuntimeException runtimeException){
-        return CompletableFuture.supplyAsync(() ->"Oops! Something went wrong, please try later!");
+    private CompletableFuture<String> fallBackMethod(AccountRequest accountRequest, RuntimeException runtimeException) {
+        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please try later!");
     }
 
 

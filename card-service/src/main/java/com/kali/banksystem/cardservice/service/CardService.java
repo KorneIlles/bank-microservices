@@ -26,7 +26,6 @@ public class CardService {
     }
 
 
-    @Transactional
     public CardResponse createCard(CardRequest cardRequest) throws Exception {
         Card card = Card.builder()
                 .cardType(cardRequest.getCardType())
@@ -43,6 +42,7 @@ public class CardService {
             return mapToCardResponse(card);
         }catch (Exception e){
             log.error("Failed to create card to this account {}", cardRequest.getAccountId(), e);
+            cardRepository.delete(card);
             throw  new Exception("Failed to create card.");
         }
     }

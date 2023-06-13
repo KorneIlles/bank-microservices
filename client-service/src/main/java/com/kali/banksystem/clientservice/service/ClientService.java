@@ -38,7 +38,6 @@ public class ClientService {
     @CircuitBreaker(name = "account",fallbackMethod = "fallBackMethod")
     @TimeLimiter(name = "account")
     @Retry(name = "account")
-    @Transactional
     public CompletableFuture<String> registerClient(ClientRequest clientRequest) {
         Client client = Client.builder()
                 .firstName(clientRequest.getFirstName())
@@ -60,15 +59,15 @@ public class ClientService {
             log.info("Client {} is registered", client.getId());
 
             AccountRequest accountRequest = getAccountRequest(client);
-            Mono<AccountResponse> createdAccount = createAccount(accountRequest);
-
-            AccountResponse account = createdAccount.block(); // Wait for the Mono to complete and get the result
-            log.info("base account {} is created for client id {} ", account.getId(), client.getId());
+            String createdAccountInfo = createAccount(accountRequest);
+            log.info("hello account response");
+           log.info(createdAccountInfo);
             return  CompletableFuture.supplyAsync(() ->"You register successfully!");
 
         } catch (Exception e) {
             // Handle the exception
             log.error("Failed to create account for client {}", client.getId(), e);
+            clientRepository.delete(client);
             throw e;
         }
     }
@@ -106,13 +105,13 @@ public class ClientService {
                 .build();
     }
 
-    private Mono<AccountResponse> createAccount(AccountRequest accountRequest) {
+    private String createAccount(AccountRequest accountRequest) {
         try {
             return webClientBuilder.build().post()
                     .uri("http://account-service/api/account")
                     .bodyValue(accountRequest)
                     .retrieve()
-                    .bodyToMono(AccountResponse.class);
+                    .bodyToMono(String.class).block();
         } catch (Exception e) {
             // Handle or rethrow the exception
             log.error("Failed to create account", e);
