@@ -10,13 +10,12 @@ import com.kali.banksystem.accountservice.repository.AccountRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
-import lombok.SneakyThrows;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -30,13 +29,14 @@ import java.util.concurrent.CompletableFuture;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    //    private  final WebClient webClient;
     private final WebClient.Builder webClientBuilder;
+    private final ObservationRegistry observationRegistry;
 
     @Autowired
-    public AccountService(AccountRepository accountRepository, WebClient.Builder webClientBuilder) {
+    public AccountService(AccountRepository accountRepository, WebClient.Builder webClientBuilder, ObservationRegistry observationRegistry) {
         this.accountRepository = accountRepository;
         this.webClientBuilder = webClientBuilder;
+        this.observationRegistry = observationRegistry;
     }
 
     @CircuitBreaker(name = "card", fallbackMethod = "fallBackMethod")
@@ -64,10 +64,9 @@ public class AccountService {
             log.info("Account {} is registered", account.getId());
 
             CardRequest cardRequest = getCardRequest(accountRequest.getClientName(), account.getId(), "standard");
-            Mono<CardResponse> createdCard = createCard(cardRequest);
+            CardResponse createdCardInfo = createCard(cardRequest);
 
-            CardResponse card = createdCard.block(); // Wait for the Mono to complete and get the result
-            log.info("base card {} is created for account id {} ", card.getId(), account.getId());
+            log.info("base card {} is created for account id {} ", createdCardInfo.getId(), account.getId());
 
             return CompletableFuture.supplyAsync(() -> String.format("base account %s is created for client id %s", account.getId(), account.getClientId()));
         } catch (Exception e) {
@@ -115,7 +114,6 @@ public class AccountService {
         // List of sample country codes (replace with actual country codes)
         String[] countryCodes = {
                 "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW",
-                // Add more country codes...
         };
 
         // Select a random country code
@@ -132,13 +130,20 @@ public class AccountService {
         return String.format("%010d", accountNumber);
     }
 
-    private Mono<CardResponse> createCard(CardRequest cardRequest) {
-        log.info("CREATE CARD METGHOD --------------------------------------------------");
-        return webClientBuilder.build().post()
-                .uri("http://card-service/api/card")
-                .bodyValue(cardRequest)
-                .retrieve()
-                .bodyToMono(CardResponse.class);
+    private CardResponse createCard(CardRequest cardRequest) {
+        try {
+
+            Observation cardServiceObservation = Observation.createNotStarted("card-service-trace", this.observationRegistry);
+            cardServiceObservation.lowCardinalityKeyValue("call","card-service");
+            return cardServiceObservation.observe(() ->webClientBuilder.build().post()
+                    .uri("http://card-service/api/card")
+                    .bodyValue(cardRequest)
+                    .retrieve()
+                    .bodyToMono(CardResponse.class).block());
+        }catch (Exception e){
+            log.error("Failed to create card", e);
+            throw e;
+        }
     }
 
     private CardRequest getCardRequest(String clientName, Long accountId, String cardType) {
