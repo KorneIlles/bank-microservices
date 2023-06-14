@@ -2,7 +2,6 @@ package com.kali.banksystem.clientservice.service;
 
 
 import com.kali.banksystem.clientservice.dto.account.AccountRequest;
-import com.kali.banksystem.clientservice.dto.account.AccountResponse;
 import com.kali.banksystem.clientservice.dto.client.ClientRequest;
 import com.kali.banksystem.clientservice.dto.client.ClientResponse;
 import com.kali.banksystem.clientservice.model.Client;
@@ -10,12 +9,12 @@ import com.kali.banksystem.clientservice.repository.ClientRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,14 +27,18 @@ public class ClientService {
 
     private final ClientRepository clientRepository;
     private final WebClient.Builder webClientBuilder;
+    private final ObservationRegistry observationRegistry;
+
 
     @Autowired
-    public ClientService(ClientRepository clientRepository, WebClient.Builder webClientBuilder) {
+    public ClientService(ClientRepository clientRepository, WebClient.Builder webClientBuilder,
+                         ObservationRegistry observationRegistry) {
         this.clientRepository = clientRepository;
         this.webClientBuilder = webClientBuilder;
+        this.observationRegistry = observationRegistry;
     }
 
-    @CircuitBreaker(name = "account",fallbackMethod = "fallBackMethod")
+    @CircuitBreaker(name = "account", fallbackMethod = "fallBackMethod")
     @TimeLimiter(name = "account")
     @Retry(name = "account")
     public CompletableFuture<String> registerClient(ClientRequest clientRequest) {
@@ -61,8 +64,8 @@ public class ClientService {
             AccountRequest accountRequest = getAccountRequest(client);
             String createdAccountInfo = createAccount(accountRequest);
             log.info("hello account response");
-           log.info(createdAccountInfo);
-            return  CompletableFuture.supplyAsync(() ->"You register successfully!");
+            log.info(createdAccountInfo);
+            return CompletableFuture.supplyAsync(() -> "You register successfully!");
 
         } catch (Exception e) {
             // Handle the exception
@@ -107,11 +110,14 @@ public class ClientService {
 
     private String createAccount(AccountRequest accountRequest) {
         try {
-            return webClientBuilder.build().post()
+            Observation accountServiceObservation = Observation.createNotStarted("account-service-trace", this.observationRegistry);
+            accountServiceObservation.lowCardinalityKeyValue("call", "account-service");
+            return accountServiceObservation.observe(() -> webClientBuilder.build().post()
                     .uri("http://account-service/api/account")
                     .bodyValue(accountRequest)
                     .retrieve()
-                    .bodyToMono(String.class).block();
+                    .bodyToMono(String.class).block());
+
         } catch (Exception e) {
             // Handle or rethrow the exception
             log.error("Failed to create account", e);
@@ -119,8 +125,9 @@ public class ClientService {
         }
     }
 
-    private CompletableFuture<String>  fallBackMethod(ClientRequest clientRequest, RuntimeException runtimeException){
-        return CompletableFuture.supplyAsync(() ->"Oops! Something went wrong, please try later!");
+
+    private CompletableFuture<String> fallBackMethod(ClientRequest clientRequest, RuntimeException runtimeException) {
+        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please try later!");
     }
 
 }
