@@ -1,7 +1,21 @@
+
+##database
+spring.datasource.url=
+spring.datasource.username=
+spring.datasource.password=
+spring.jpa.database-platform=
+spring.jpa.show-sql=
+
 ##server
 server.port=
-eureka.client.serviceUrl.defaultZone=
 spring.application.name=
+
+##zipkin
+management.zipkin.tracing.endpoint=
+management.tracing.sampling.probability=
+
+##eureka
+eureka.client.serviceUrl.defaultZone=
 
 ##actuator
 management.health.circuitbreakers.enabled=

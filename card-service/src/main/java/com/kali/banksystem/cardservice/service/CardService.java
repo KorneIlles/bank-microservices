@@ -87,7 +87,6 @@ public class CardService {
             panBuilder.append(digit);
         }
 
-        // Calculate and append the checksum digit using Luhn algorithm
         int checksum = calculateLuhnChecksum(panBuilder.toString());
         panBuilder.append(checksum);
 

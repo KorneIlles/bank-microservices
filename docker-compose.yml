@@ -17,3 +17,10 @@ services:
     restart: always
     command:
       - "start-dev"
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - 9411:9411
+    restart: always
+    command:
+      - "start-dev"

@@ -1,11 +1,17 @@
-##database
+## database
 spring.datasource.url=
 spring.datasource.username=
 spring.datasource.password=
 spring.jpa.database-platform=
 spring.jpa.show-sql=
 
-##server
-server.port=
+## eureka
 eureka.client.serviceUrl.defaultZone=
+
+## server
+server.port=
 spring.application.name=
+
+## zipkin
+management.zipkin.tracing.endpoint=
+management.tracing.sampling.probability=

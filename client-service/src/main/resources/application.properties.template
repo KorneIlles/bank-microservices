@@ -1,14 +1,21 @@
-##server
+## server
 server.port=
-eureka.client.serviceUrl.defaultZone=
 spring.application.name=
 
-##actuator
+
+## zipkin
+management.zipkin.tracing.endpoint=
+management.tracing.sampling.probability=
+
+## eureka
+eureka.client.serviceUrl.defaultZone=
+
+## actuator
 management.health.circuitbreakers.enabled=
 management.endpoints.web.exposure.include=
 management.endpoint.health.show-details=
 
-##Resilience4j
+## Resilience4j
 resilience4j.circuitbreaker.instances.account.registerHealthIndicator=
 resilience4j.circuitbreaker.instances.account.event-consumer-buffer-size=
 resilience4j.circuitbreaker.instances.account.slidingWindowType=

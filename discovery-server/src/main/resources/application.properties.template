@@ -5,5 +5,9 @@ eureka.client.fetch-registry=
 eureka.username=
 eureka.password=
 
+## zipkin
+management.zipkin.tracing.endpoint=
+management.tracing.sampling.probability=
+
 ##server
 server.port=
