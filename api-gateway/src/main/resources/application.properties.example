@@ -1,6 +1,12 @@
+
+## eureka
 eureka.client.serviceUrl.defaultZone=
+
+## server
 spring.application.name=
 server.port=
+
+## Logging
 logging.level.root=
 logging.level.org.springframework.cloud.gateway.route.RouteDefinitionLocator=
 logging.level.org.springframework.cloud.gateway=
@@ -14,3 +20,10 @@ spring.cloud.gateway.routes[0].predicates[0]=
 ## Card service route
 ## discovery server route
 ## discovery server static resources route
+
+## zipkin
+management.zipkin.tracing.endpoint=
+management.tracing.sampling.probability=
+
+## eureka
+eureka.client.serviceUrl.defaultZone=
